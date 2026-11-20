@@ -5,8 +5,7 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 ## Estado actual (resumen rápido)
 - **Fase completada:** 1 (Frontend sin backend).
 - **Fase completada:** 2 (backend NestJS con datos en memoria, frontend conectado). Commit `fase2`.
-- **Fase completada:** 3 (MongoDB con Mongoose; los datos persisten). Commit `fase3`.
-- **Siguiente:** Fase 4. Repaso final del viaje de un dato.
+- **Fase completada:** 4 (repaso final). **Proyecto terminado:** las 4 fases están hechas. Último commit: `fase4`.
 - **Para usar la app hay que arrancar 2 cosas** (cada una en su terminal): primero MongoDB y después el backend. Luego se abre `frontend/index.html`.
 - **Cómo arrancar MongoDB:** `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017` (dejar esa terminal abierta).
 - **Archivos del proyecto:** `CLAUDE.md`, `INSTRUCCIONES_PROYECTO.md`, `BITACORA.md`, `.gitignore`, `frontend/` (`index.html`, `styles.css`, `app.js`), `backend/` (NestJS; nuestro código está en `backend/src/productos/`).
@@ -201,8 +200,56 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 - **Separar capas tiene premio:** solo cambiamos el servicio (y añadimos el schema). El controlador casi no cambió y el frontend nada.
 - **Ahora hay 3 programas funcionando a la vez:** MongoDB (27017), el backend (3000) y el navegador con el frontend.
 
+#### Fase 4: repaso final (el viaje de un dato)
+Ejemplo: se crea "iPad Pro" desde el formulario.
+
+**Ida (del formulario a MongoDB)**
+1. **Navegador, evento:** al pulsar Guardar salta el `submit` (`frontend/app.js:140`).
+2. **Navegador, recoger datos:** se leen los campos y se monta el objeto `datos` (`app.js:146`).
+3. **Navegador, petición HTTP:** `crearProducto` (`app.js:47`) convierte `datos` a texto JSON y llama a `fetch` (`app.js:25`).
+   - Envía `POST http://localhost:3000/productos` (`app.js:8`) con la cabecera `Content-Type: application/json`.
+4. **Por la red local:** la petición sale del navegador hacia el puerto 3000. Como la web viene de otro origen, el navegador comprueba **CORS**, y el backend lo permite (`backend/src/main.ts:11`).
+5. **NestJS, controlador:** `@Controller('productos')` + `@Post()` deciden quién atiende (`productos.controller.ts:20, 36`). `@Body()` convierte el JSON en objeto.
+6. **NestJS, servicio:** `create` (`productos.service.ts:36`) primero **valida** (`:97`). Si hay errores, responde 400 (`:116`) y el viaje termina aquí.
+7. **Mongoose:** `this.modelo.create(...)` (`:37`) comprueba el schema (`producto.schema.ts`) y envía el documento a MongoDB por la conexión de `app.module.ts:13,17` (`mongodb://127.0.0.1:27017/productos`).
+8. **MongoDB:** guarda el documento en la colección `productos` (en el disco, `~/.local/mongodb-data`) y le pone un `_id`.
+
+**Vuelta (de MongoDB a la pantalla)**
+9. **Mongoose → servicio:** MongoDB devuelve el documento guardado. `aProducto` (`:82`) lo traduce: `_id` → `id` en texto (`:84`).
+10. **Controlador → HTTP:** Nest lo convierte a JSON y responde **201 Created**.
+11. **Navegador:** `fetch` recibe la respuesta. `respuesta.json()` (`app.js:38`) la convierte en objeto.
+12. **Navegador, refrescar:** `pintarProductos` (`app.js:162` → `:84`) pide la lista completa con un segundo viaje, `GET /productos` → `findAll` → `modelo.find()` (`service:26`).
+13. **Navegador, pintar:** se genera una tarjeta por producto (`app.js:99`), escapando los textos (`:102`).
+
+**Las 4 operaciones del CRUD hacen el mismo viaje**, solo cambian el método HTTP y la función de Mongoose:
+
+| Acción | Frontend | HTTP | Servicio | Mongoose |
+|---|---|---|---|---|
+| Crear | `crearProducto` | POST /productos | `create` | `create` |
+| Listar | `leerProductos` | GET /productos | `findAll` | `find` |
+| Editar | `editarProducto` | PUT /productos/:id | `update` | `findByIdAndUpdate` |
+| Borrar | `borrarProducto` | DELETE /productos/:id | `remove` | `findByIdAndDelete` |
+
+**Qué añadió cada fase**
+- Fase 1: el frontend (los datos en el navegador, con localStorage).
+- Fase 2: el backend y la API REST (los datos en la memoria del servidor; aparecen HTTP, JSON y CORS).
+- Fase 3: la base de datos (los datos en disco y persistentes; aparecen Mongoose, schema y modelo).
+
+- **Cierre de la Fase 4 y del proyecto:** la usuaria pidió cerrar la fase, hacer el commit, subirlo y "desplegarlo para verlo". Commit `fase4` y push a GitHub.
+
+#### ✅ Resumen de la Fase 4 (qué hemos aprendido)
+- **Un proyecto fullstack son 3 piezas que hablan entre sí:**
+  - Frontend (navegador) ⇄ HTTP + JSON ⇄ Backend (NestJS) ⇄ Mongoose ⇄ Base de datos (MongoDB).
+- **Cada pieza tiene un trabajo:**
+  - El frontend enseña y recoge datos.
+  - El backend aplica las reglas (validar) y decide.
+  - La base de datos guarda.
+- **Todas las operaciones siguen el mismo camino.** Solo cambian el método HTTP y la función de Mongoose.
+- **Al separar en piezas, se puede cambiar una sin tocar las demás** (de memoria a MongoDB, sin cambiar el frontend).
+
 ### Pendiente
-- Fase 4: repaso final. Cómo viaja un dato desde el formulario hasta la base de datos y de vuelta.
+- Regenerar el token de GitHub (quedó expuesto en el chat).
+- Añadir Git al PATH en `~/.zshrc`.
 - Regenerar el token de GitHub (sigue pendiente).
 - Añadir Git al PATH en `~/.zshrc` (sigue pendiente).
 
