@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos tecnológicos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Productos tecnológicos</h1>
+  </header>
+
+  <main>
+    <!-- FORMULARIO: sirve para crear y para editar -->
+    <section class="panel">
+      <h2 id="titulo-formulario">Nuevo producto</h2>
+
+      <form id="formulario-producto">
+        <!-- Campo oculto: guarda el id del producto que se está editando (vacío = crear) -->
+        <input type="hidden" id="id">
+
+        <label for="nombre">Nombre</label>
+        <input type="text" id="nombre" required>
+
+        <label for="marca">Marca</label>
+        <input type="text" id="marca" required>
+
+        <label for="categoria">Categoría</label>
+        <select id="categoria" required>
+          <option value="">-- Elige una --</option>
+          <option value="Portátil">Portátil</option>
+          <option value="Móvil">Móvil</option>
+          <option value="Tablet">Tablet</option>
+          <option value="Monitor">Monitor</option>
+          <option value="Accesorio">Accesorio</option>
+        </select>
+
+        <label for="precio">Precio (€)</label>
+        <input type="number" id="precio" min="0" step="0.01" required>
+
+        <label for="stock">Stock (unidades)</label>
+        <input type="number" id="stock" min="0" step="1" required>
+
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" rows="3"></textarea>
+
+        <div class="botones">
+          <button type="submit">Guardar</button>
+          <button type="button" id="boton-cancelar">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- LISTADO: aquí app.js pintará una caja por cada producto -->
+    <section class="panel">
+      <h2>Listado</h2>
+      <div id="listado-productos" class="cajas">
+        <!-- Ejemplo de cómo será cada caja (app.js las generará automáticamente):
+        <article class="caja">
+          <h3>Nombre</h3>
+          <p>Marca · Categoría</p>
+          <p>Precio € · Stock</p>
+          <p>Descripción</p>
+          <button>Editar</button> <button>Borrar</button>
+        </article>
+        -->
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

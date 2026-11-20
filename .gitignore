@@ -1,0 +1,5 @@
+# Archivo oculto que crea macOS en cada carpeta (no aporta nada)
+.DS_Store
+
+# Dependencias de Node/npm (Fase 2): se pueden volver a descargar con "npm install"
+node_modules/
