@@ -5,7 +5,7 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 ## Estado actual (resumen rápido)
 - **Fase completada:** 1 (Frontend sin backend).
 - **Fase completada:** 2 (backend NestJS con datos en memoria, frontend conectado). Commit `fase2`.
-- **Fases completadas:** 0–4. **En curso:** Fase 5, despliegue en Render. Archivos y guía (`DESPLIEGUE.md`) preparados; faltan los pasos manuales.
+- **Fases completadas:** 0–4. **En curso:** Fase 5, despliegue en Render. Pasos 1, 2, 3.1 y 3.2 hechos. **Siguiente: paso 3.3** (cadena de conexión de Atlas) y después el paso 4 (Blueprint en Render). Para retomar: `RETOMAR.md`.
 - **Para usar la app hay que arrancar 2 cosas** (cada una en su terminal): primero MongoDB y después el backend. Luego se abre `frontend/index.html`.
 - **Cómo arrancar MongoDB:** `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017` (dejar esa terminal abierta).
 - **Archivos del proyecto:** `CLAUDE.md`, `INSTRUCCIONES_PROYECTO.md`, `BITACORA.md`, `.gitignore`, `frontend/` (`index.html`, `styles.css`, `app.js`), `backend/` (NestJS; nuestro código está en `backend/src/productos/`).
@@ -281,11 +281,38 @@ Ejemplo: se crea "iPad Pro" desde el formulario.
   - Cambiados: `frontend/index.html` (carga `config.js`), `frontend/app.js` (lee `window.API_URL`), `backend/src/main.ts` (`CORS_ORIGIN`), `CLAUDE.md` (fase 5 y cambio de la regla "todo en local").
 - **Comprobado en local:** build OK, tests OK, el comando de build del frontend escribe bien `config.js` (y falla sin `API_URL`), y CORS con `CORS_ORIGIN` deja pasar solo el origen permitido.
 
-### Pendiente
-- **Fase 5:** seguir `DESPLIEGUE.md`.
-  - Paso 1 (usuaria): añadir al token el permiso **Workflows**.
-  - Paso 2 (Claude): commit + push.
-  - Pasos 3–7: Atlas, Blueprint de Render, Deploy Hooks, secrets de GitHub y prueba.
+- **Paso 1 hecho (por Claude, a petición de la usuaria):** en GitHub, se añadió al token `mac-clase-actividad01` el permiso **Workflows: Read and write**. Sigue limitado al repo `DEL_PRUEBACIFO`.
+  - El primer push se había rechazado: *refusing to allow a Personal Access Token to create or update workflow ... without `workflow` scope*.
+- **Paso 2 hecho:** push del commit `fase5: preparar despliegue en Render`.
+  - **Primera ejecución de la GitHub Action (#1): ✅ Success en 20 s.**
+    - Comprobar (build + tests): ✅ (1 test pasa).
+    - Desplegar en Render: ✅, con 2 avisos esperados ("Falta el secret RENDER_DEPLOY_HOOK_..."), porque aún no hay servicios en Render.
+  - Nota: consultando la API de GitHub sin autenticar se agotó el límite de peticiones (60 por hora, y la IP de clase es compartida). Se comprobó en la web de GitHub.
+
+- **Paso 3.2 hecho (Claude):** en Atlas → IP Access List se añadió `0.0.0.0/0` con el comentario "Render free (sin IP fija)". Se mantiene la entrada anterior, la IP de clase `83.247.137.2/32`.
+- **Paso 3.1 (usuaria):** Claude le abrió la página *Database Access*.
+  - Ya existía un usuario administrador, `…_db_user` (rol `atlasAdmin`).
+  - Decisión: crear un usuario aparte, `app-productos`, con solo lectura y escritura.
+    - Por qué: si la contraseña de la app se filtrara, no daría control total de Atlas.
+
+- **Paso 3.1 hecho (usuaria):** usuario `app-productos` creado en Atlas con rol `readWriteAnyDatabase`. La contraseña la guarda la usuaria; Claude no la conoce.
+- **Paso 3.3 a medias (usuaria):** estaba en Atlas → Clusters → **Connect** → **Drivers**, copiando la cadena `mongodb+srv://...` a una nota.
+- Datos de Atlas vistos: cluster `Cluster0`, FREE, MongoDB 8.0, AWS París (eu-west-3).
+- **La usuaria se fue; se retoma el lunes.** Se creó `RETOMAR.md` con el prompt para continuar.
+  - Antes de irse, Claude paró el backend, MongoDB local y el servidor temporal 8080. Los datos locales siguen en `~/.local/mongodb-data`.
+
+### Pendiente (para el lunes)
+- **Fase 5**, seguir `DESPLIEGUE.md`:
+  1. **3.3 (usuaria):** tener la cadena de conexión en una nota (con la contraseña y `/productos`).
+     - Si se perdió la contraseña: Atlas → Database & Network Access → Database Users → `app-productos` → EDIT → *Edit Password* → *Autogenerate* → Update User.
+  2. **Paso 4 (usuaria + Claude):** Render → New → Blueprint → repo `ladynaiky/DEL_PRUEBACIFO`. Variables: `MONGODB_URI` (de la nota, la pega la usuaria), `CORS_ORIGIN`, `API_URL`. Comprobar las URLs reales de los servicios.
+  3. **Paso 5 (Claude):** comprobar `https://<backend>.onrender.com/` y `/productos`.
+  4. **Paso 6 (usuaria + Claude):** Deploy Hooks de los 2 servicios → GitHub Secrets `RENDER_DEPLOY_HOOK_BACKEND` y `RENDER_DEPLOY_HOOK_FRONTEND`.
+  5. **Paso 7 (Claude):** ejecutar la Action a mano y probar la web pública.
+  6. Cerrar la Fase 5: resumen, estado y commit `fase5`.
+- Añadir Git al PATH en `~/.zshrc`.
+- Al terminar el curso: borrar el token en GitHub.
+  - La contraseña del usuario de Atlas y la `MONGODB_URI` las gestiona la usuaria (Claude no introduce contraseñas).
 - Añadir Git al PATH en `~/.zshrc`.
 - Al terminar el curso: borrar el token en GitHub.
 - Regenerar el token de GitHub (sigue pendiente).

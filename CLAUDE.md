@@ -1,7 +1,7 @@
 # Proyecto fullstack mínimo (aprendizaje)
 
 ## Estado actual
-- Fases 0–4 completadas. Fase 5 (despliegue en Render) en curso: archivos y guía preparados; faltan los pasos manuales de `DESPLIEGUE.md`.
+- Fases 0–4 completadas. Fase 5 (despliegue en Render) en curso: pasos 1, 2, 3.1 y 3.2 de `DESPLIEGUE.md` hechos. Siguiente: 3.3 (cadena de conexión de Atlas) y paso 4 (Blueprint en Render). Al retomar, leer `RETOMAR.md` y `BITACORA.md`.
 - MongoDB 9.0.8 instalado en el usuario (sin admin): `~/.local/mongodb/bin/mongod`, datos en `~/.local/mongodb-data`, consola `mongosh` (npm global).
   Arrancar: `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017`
 - Historial detallado de lo hecho y lo decidido: ver `BITACORA.md`.
