@@ -6,7 +6,7 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 - **Fase completada:** 1 (Frontend sin backend).
 - **Siguiente:** Fase 2. Añadir el backend NestJS (antes, revisar Node, npm y Nest CLI).
 - **Archivos del proyecto:** `CLAUDE.md`, `INSTRUCCIONES_PROYECTO.md`, `BITACORA.md`, `.gitignore`, `frontend/` (`index.html`, `styles.css`, `app.js`).
-- **Git:** activo en local. Primer commit: `fase1`.
+- **Git:** activo. Sincronizado con GitHub (https://github.com/ladynaiky/DEL_PRUEBACIFO). Primer commit: `fase1`.
 
 ---
 
@@ -27,7 +27,7 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
   - `git init` con la rama `main` y primer commit `fase1`.
 
 ### Decisiones
-- **Usar Git en local, sin GitHub.**
+- **Usar Git.** Al principio, solo en local. Más tarde, ese mismo día, decidimos conectarlo también con GitHub (ver más abajo).
   - Por qué: para tener "fotos" del proyecto y poder volver atrás.
 - **Instalar Git en el usuario con micromamba**, en lugar de pedirlo al administrador.
   - Por qué: no hay permisos de administrador y queríamos seguir ya.
@@ -37,9 +37,36 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 - **Hay una entrada por día, con la más reciente arriba.**
   - Por qué: al retomar el trabajo, lo último es lo primero que se lee.
 
+- **Fase 2, paso 1: revisamos las herramientas.**
+  - Node v26.13.1: instalado.
+  - npm 11.20.0: instalado.
+  - Nest CLI: **no instalado**.
+
+- **Conectamos el proyecto con GitHub** (antes de instalar Nest CLI):
+  - Repo: https://github.com/ladynaiky/DEL_PRUEBACIFO (público). Estaba vacío.
+  - Remote `origin` añadido.
+  - Decisiones: se usa el email real en los commits, aunque el repo sea público. Autenticación con un token *fine-grained*, no con `gh` ni SSH.
+  - El token no se pega nunca en el chat: se escribe en la app Terminal.
+  - Esta instalación de Git no trae el helper del Llavero de macOS (`osxkeychain`). Solo trae `store` y `cache`.
+  - **Decisión: `credential.helper store`**, solo para este proyecto. El token se guarda en `~/.git-credentials`, sin cifrar.
+    - Por qué: es cómodo y el riesgo es bajo (el token solo da acceso a este repo y caduca).
+    - Ojo: borrar el token en GitHub al terminar el curso, porque el ordenador es del centro.
+
+- **Primer `git push -u origin main`:** hecho. El commit `fase1` ya está en GitHub.
+  - El usuario pegó el token en el chat y pidió a Claude que hiciera el push. Claude lo guardó con `git credential approve` en `~/.git-credentials` (permisos 600).
+  - ⚠️ El token quedó expuesto en el historial de la conversación. Conviene regenerarlo.
+
 ### Pendiente
+- **Regenerar el token en GitHub** (porque quedó expuesto en el chat) y actualizar `~/.git-credentials`.
 - Añadir Git al PATH en `~/.zshrc` (para poder escribir solo `git`).
-- Empezar la Fase 2. Antes, revisar si hay Node y npm: existe `~/.npm-global` en el PATH, así que puede que ya estén instalados.
+- Fase 2: instalar Nest CLI.
+
+- **Cierre de la Fase 1.** Revisamos que estuviera todo:
+  - CRUD funcionando y probado en el navegador ✅
+  - Commit `fase1` en GitHub ✅
+  - Faltaba el resumen de lo aprendido: lo añadimos a la entrada del 19/11 ✅
+  - Hicimos el commit `fase1: cierre` con la documentación de hoy y lo subimos a GitHub.
+- **La usuaria se fue de pausa y pidió a Claude que siguiera con la Fase 2 por su cuenta.** Los pasos siguientes, hasta que vuelva, los hizo Claude solo, explicados aquí.
 
 ---
 
@@ -74,6 +101,22 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 - **Los colores van en variables CSS (`:root`).**
   - Por qué: para cambiarlos en un solo sitio.
 - Campos obligatorios: nombre, marca, categoría, precio y stock. La descripción es opcional.
+
+### ✅ Resumen de la Fase 1 (qué hemos aprendido)
+- **Pieza nueva: el frontend.** Es lo que ve y usa la persona en el navegador.
+- **Cada archivo tiene un papel:**
+  - HTML = estructura (qué hay en la página).
+  - CSS = aspecto (cómo se ve).
+  - JavaScript = comportamiento (qué pasa cuando haces clic).
+- **CRUD:** son las 4 operaciones básicas con datos.
+  - Create = crear (formulario → Guardar).
+  - Read = leer (pintar el listado).
+  - Update = editar (Editar → cambiar → Guardar).
+  - Delete = borrar.
+- **Eventos:** el JavaScript "escucha" lo que hace la persona (`submit`, `click`) y reacciona.
+- **localStorage:** un pequeño almacén del navegador.
+  - Limitación: los datos solo existen en *ese* navegador y en *ese* ordenador. Otra persona no los ve. Por eso en la Fase 2 los llevamos a un servidor.
+- **JSON:** un formato de texto para representar datos (listas y objetos). Lo volveremos a usar para comunicar el frontend con el backend.
 
 ### Pendiente
 - Fase 2: backend NestJS con los datos en memoria del servidor.

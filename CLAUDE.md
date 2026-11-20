@@ -13,7 +13,8 @@
 - CRUD completo: crear, listar, editar y borrar.
 - Campos del producto: nombre, marca, categoría, precio, stock, descripción.
 - Sin autenticación. Todo en local.
-- Git en local (sin GitHub). Instalado en el usuario con micromamba: `~/.local/git-env/bin/git` (el usuario no es administrador del Mac).
+- Git instalado en el usuario con micromamba: `~/.local/git-env/bin/git` (el usuario no es administrador del Mac).
+- GitHub (público): https://github.com/ladynaiky/DEL_PRUEBACIFO (remote `origin`, rama `main`). Autenticación con token guardado mediante `credential.helper store`. Nunca escribir el token en archivos del proyecto.
 - Hacer un commit al terminar cada fase (título: `faseN`).
 
 ## Stack
