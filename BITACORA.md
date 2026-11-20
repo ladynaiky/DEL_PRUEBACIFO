@@ -247,9 +247,17 @@ Ejemplo: se crea "iPad Pro" desde el formulario.
 - **Todas las operaciones siguen el mismo camino.** Solo cambian el método HTTP y la función de Mongoose.
 - **Al separar en piezas, se puede cambiar una sin tocar las demás** (de memoria a MongoDB, sin cambiar el frontend).
 
+- **"Desplegar para verlo":** la usuaria eligió verla **en su Mac**, no publicarla en internet ni en GitHub Pages.
+  - Por qué: así se respeta la regla "todo en local" y no hace falta crear cuentas.
+  - Claude abrió la app en una pestaña de Chrome (`http://localhost:8080`, servida temporalmente), con el backend y MongoDB encendidos.
+
+- **Token de GitHub regenerado.** La usuaria pegó el nuevo en el chat ("estamos en un entorno de clase") y Claude sustituyó el guardado en `~/.git-credentials`.
+  - Decisión de la usuaria: acepta que el token quede en el historial porque es un entorno de clase.
+  - Recomendación: borrarlo en GitHub al terminar el curso.
+
 ### Pendiente
-- Regenerar el token de GitHub (quedó expuesto en el chat).
 - Añadir Git al PATH en `~/.zshrc`.
+- Al terminar el curso: borrar el token en GitHub.
 - Regenerar el token de GitHub (sigue pendiente).
 - Añadir Git al PATH en `~/.zshrc` (sigue pendiente).
 
