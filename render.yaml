@@ -1,0 +1,49 @@
+# =====================================================================
+# render.yaml — "Blueprint" de Render: describe los servicios de la app
+# =====================================================================
+# Render lee este archivo y crea los 2 servicios de golpe:
+#   1. productos-backend  → Web Service (NestJS), plan free
+#   2. productos-frontend → Static Site (HTML/CSS/JS), gratis
+# La base de datos NO está en Render: es MongoDB Atlas (plan M0, gratis).
+#
+# Los despliegues NO son automáticos (autoDeployTrigger: off): los lanza
+# GitHub Actions (.github/workflows/deploy.yml) solo si las comprobaciones pasan.
+#
+# Las variables con "sync: false" son secretas o dependen de URLs que aún no
+# existen: Render las pide al crear el Blueprint (ver DESPLIEGUE.md).
+
+services:
+  # ------------------------------------------------------------------
+  # 1) BACKEND: API REST con NestJS
+  # ------------------------------------------------------------------
+  - type: web
+    name: productos-backend
+    runtime: node
+    plan: free
+    region: frankfurt          # la región más cercana a España
+    rootDir: backend           # el código está en la carpeta backend/
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /         # Render comprueba que GET / responde ("Hello World!")
+    autoDeployTrigger: "off"
+    envVars:
+      - key: MONGODB_URI       # cadena de conexión de MongoDB Atlas (secreta)
+        sync: false
+      - key: CORS_ORIGIN       # URL del frontend, p. ej. https://productos-frontend.onrender.com
+        sync: false
+
+  # ------------------------------------------------------------------
+  # 2) FRONTEND: web estática
+  # ------------------------------------------------------------------
+  - type: web
+    name: productos-frontend
+    runtime: static
+    rootDir: frontend          # el código está en la carpeta frontend/
+    # Al construir, escribe en config.js la URL pública del backend.
+    # Si falta API_URL, el build falla (así no se publica una web que apunta a localhost).
+    buildCommand: test -n "$API_URL" && echo "window.API_URL = '$API_URL';" > config.js && cat config.js
+    staticPublishPath: ./
+    autoDeployTrigger: "off"
+    envVars:
+      - key: API_URL           # URL del backend + /productos, p. ej. https://productos-backend.onrender.com/productos
+        sync: false

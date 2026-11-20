@@ -5,7 +5,7 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 ## Estado actual (resumen rápido)
 - **Fase completada:** 1 (Frontend sin backend).
 - **Fase completada:** 2 (backend NestJS con datos en memoria, frontend conectado). Commit `fase2`.
-- **Fase completada:** 4 (repaso final). **Proyecto terminado:** las 4 fases están hechas. Último commit: `fase4`.
+- **Fases completadas:** 0–4. **En curso:** Fase 5, despliegue en Render. Archivos y guía (`DESPLIEGUE.md`) preparados; faltan los pasos manuales.
 - **Para usar la app hay que arrancar 2 cosas** (cada una en su terminal): primero MongoDB y después el backend. Luego se abre `frontend/index.html`.
 - **Cómo arrancar MongoDB:** `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017` (dejar esa terminal abierta).
 - **Archivos del proyecto:** `CLAUDE.md`, `INSTRUCCIONES_PROYECTO.md`, `BITACORA.md`, `.gitignore`, `frontend/` (`index.html`, `styles.css`, `app.js`), `backend/` (NestJS; nuestro código está en `backend/src/productos/`).
@@ -255,7 +255,37 @@ Ejemplo: se crea "iPad Pro" desde el formulario.
   - Decisión de la usuaria: acepta que el token quede en el historial porque es un entorno de clase.
   - Recomendación: borrarlo en GitHub al terminar el curso.
 
+- **Ver la base de datos:**
+  - **mongosh:** Claude abrió una ventana de Terminal con `mongosh mongodb://127.0.0.1:27017/productos`. Había 3 productos (iPad Pro, MacBook Air y Pixel 99; los dos últimos creados por la usuaria desde la web).
+  - **MongoDB Compass 1.53.3** (la aplicación visual de MongoDB), con aprobación de la usuaria:
+    - Descargado de `downloads.mongodb.com` (versión `.zip`, 183 MB) y descomprimido en `~/Applications`, sin necesidad de administrador.
+    - Firma comprobada: "Developer ID Application: MongoDB, Inc." ✅
+    - Para conectar: `mongodb://127.0.0.1:27017` → base de datos `productos` → colección `productos`.
+
+#### Fase 5: despliegue en Render (nueva, a petición de la usuaria)
+- **Petición:** subir el fullstack a Render (cuenta free) usando GitHub Actions, con una guía y los archivos necesarios.
+- **Decisiones:**
+  - **MongoDB Atlas (M0, gratis) como base de datos en producción.**
+    - Por qué: Render no ofrece MongoDB. La usuaria ya tenía cuenta de Atlas, con el proyecto "Project 0" y el cluster "Cluster0" (FREE).
+    - En el Mac se sigue usando el MongoDB local.
+  - **2 servicios en Render** (elegido por la usuaria): Static Site para el frontend y Web Service (free) para el backend. Es la misma estructura que en local.
+  - **GitHub Actions comprueba y despliega:** build + tests y, solo si pasan, llama a los **Deploy Hooks** de Render. En Render, `autoDeployTrigger: off`.
+    - Por qué: así nunca se despliega código roto, y en la pestaña Actions se ve cada despliegue.
+  - **Node 24 (LTS)** en Render y en Actions (`backend/.node-version`). NestJS 12 y Mongoose 9 piden Node 20.19 o superior.
+  - **La URL del backend sale de `frontend/config.js`.** En local es `localhost`; Render lo sobrescribe al construir con la variable `API_URL`. Si falta `API_URL`, el build falla a propósito.
+  - **CORS configurable con `CORS_ORIGIN`.** En local sigue abierto; en Render solo se permite la URL del frontend.
+  - Región de Render: Frankfurt, la más cercana.
+- **Sesión en Atlas:** Claude abrió la página de login en Chrome. La usuaria ya tenía la sesión iniciada, así que no hizo falta escribir nada.
+- **Archivos nuevos o cambiados:**
+  - Nuevos: `render.yaml`, `.github/workflows/deploy.yml`, `DESPLIEGUE.md`, `frontend/config.js`, `backend/.node-version`.
+  - Cambiados: `frontend/index.html` (carga `config.js`), `frontend/app.js` (lee `window.API_URL`), `backend/src/main.ts` (`CORS_ORIGIN`), `CLAUDE.md` (fase 5 y cambio de la regla "todo en local").
+- **Comprobado en local:** build OK, tests OK, el comando de build del frontend escribe bien `config.js` (y falla sin `API_URL`), y CORS con `CORS_ORIGIN` deja pasar solo el origen permitido.
+
 ### Pendiente
+- **Fase 5:** seguir `DESPLIEGUE.md`.
+  - Paso 1 (usuaria): añadir al token el permiso **Workflows**.
+  - Paso 2 (Claude): commit + push.
+  - Pasos 3–7: Atlas, Blueprint de Render, Deploy Hooks, secrets de GitHub y prueba.
 - Añadir Git al PATH en `~/.zshrc`.
 - Al terminar el curso: borrar el token en GitHub.
 - Regenerar el token de GitHub (sigue pendiente).

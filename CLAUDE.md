@@ -1,7 +1,7 @@
 # Proyecto fullstack mínimo (aprendizaje)
 
 ## Estado actual
-- Fase actual: 4 (Repaso final) — completada. Proyecto terminado (fases 0–4).
+- Fases 0–4 completadas. Fase 5 (despliegue en Render) en curso: archivos y guía preparados; faltan los pasos manuales de `DESPLIEGUE.md`.
 - MongoDB 9.0.8 instalado en el usuario (sin admin): `~/.local/mongodb/bin/mongod`, datos en `~/.local/mongodb-data`, consola `mongosh` (npm global).
   Arrancar: `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017`
 - Historial detallado de lo hecho y lo decidido: ver `BITACORA.md`.
@@ -14,7 +14,9 @@
 - Web básica con un formulario y un listado de productos tecnológicos.
 - CRUD completo: crear, listar, editar y borrar.
 - Campos del producto: nombre, marca, categoría, precio, stock, descripción.
-- Sin autenticación. Todo en local.
+- Sin autenticación.
+- Desarrollo en local (MongoDB local). Producción (fase 5): Render (frontend Static Site + backend Web Service, plan free) y MongoDB Atlas (M0). Despliegue mediante GitHub Actions + Deploy Hooks. Guía: `DESPLIEGUE.md`.
+- Secretos (contraseña de Atlas, Deploy Hooks, token): nunca en archivos del proyecto.
 - Git instalado en el usuario con micromamba: `~/.local/git-env/bin/git` (el usuario no es administrador del Mac).
 - GitHub (público): https://github.com/ladynaiky/DEL_PRUEBACIFO (remote `origin`, rama `main`). Autenticación con token guardado mediante `credential.helper store`. Nunca escribir el token en archivos del proyecto.
 - Hacer un commit al terminar cada fase (título: `faseN`).
@@ -22,12 +24,16 @@
 ## Stack
 - Frontend: HTML, JavaScript vanilla y CSS3 (sin frameworks).
 - Backend: NestJS (API REST).
-- Base de datos: MongoDB instalado en local (sin Docker), con Mongoose.
+- Base de datos: MongoDB instalado en local (sin Docker), con Mongoose. En producción: MongoDB Atlas.
+- Despliegue: Render + GitHub Actions (Node 24).
 
 ## Estructura
 ```
-/frontend  → index.html, styles.css, app.js
+/frontend  → index.html, styles.css, app.js, config.js (URL del backend)
 /backend   → proyecto NestJS (se crea en la fase 2)
+/.github/workflows/deploy.yml → GitHub Action (comprobar + desplegar)
+render.yaml → Blueprint de Render
+DESPLIEGUE.md → guía de despliegue
 CLAUDE.md  → reglas de trabajo
 BITACORA.md → diario de lo hecho y lo decidido
 ```
@@ -46,6 +52,9 @@ BITACORA.md → diario de lo hecho y lo decidido
    - Comprobar que MongoDB local funciona.
    - Conectar NestJS con Mongoose y sustituir los datos en memoria.
 4. Repaso final: cómo viaja un dato desde el formulario hasta la base de datos y de vuelta.
+5. Despliegue en Render (añadida a petición del usuario)
+   - Render: Static Site (frontend) + Web Service (backend), plan free. MongoDB Atlas M0.
+   - GitHub Actions: build + tests y, si pasan, Deploy Hooks de Render.
 
 ## Reglas obligatorias
 - Antes de cada paso, explicar qué se va a hacer y por qué. Esperar a que el usuario diga "aprobado".

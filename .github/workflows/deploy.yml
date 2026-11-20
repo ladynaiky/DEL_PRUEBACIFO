@@ -1,0 +1,84 @@
+# =====================================================================
+# deploy.yml — GitHub Actions: comprobar el código y desplegar en Render
+# =====================================================================
+# Cuándo se ejecuta:
+#   - En cada push a la rama main → comprueba y, si todo va bien, despliega.
+#   - En cada pull request         → solo comprueba (no despliega).
+#   - A mano (pestaña Actions → "Run workflow").
+#
+# Necesita 2 "secrets" en GitHub (Settings → Secrets and variables → Actions):
+#   RENDER_DEPLOY_HOOK_BACKEND   → Deploy Hook del servicio productos-backend
+#   RENDER_DEPLOY_HOOK_FRONTEND  → Deploy Hook del servicio productos-frontend
+# Ver DESPLIEGUE.md.
+
+name: CI y despliegue en Render
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # ------------------------------------------------------------------
+  # Trabajo 1: COMPROBAR que el código funciona
+  # ------------------------------------------------------------------
+  comprobar:
+    name: Comprobar (build + tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Descargar el código del repositorio
+        uses: actions/checkout@v5
+
+      - name: Instalar Node (misma versión que en Render)
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: backend/.node-version
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias del backend
+        run: npm ci
+
+      - name: Compilar el backend
+        run: npm run build
+
+      - name: Ejecutar los tests
+        run: npm test
+
+      - name: Comprobar la sintaxis del frontend
+        run: node --check ../frontend/app.js && node --check ../frontend/config.js
+
+  # ------------------------------------------------------------------
+  # Trabajo 2: DESPLEGAR en Render (solo si "comprobar" ha ido bien)
+  # ------------------------------------------------------------------
+  desplegar:
+    name: Desplegar en Render
+    needs: comprobar
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Desplegar el backend
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_BACKEND }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Falta el secret RENDER_DEPLOY_HOOK_BACKEND: no se despliega el backend."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Render ha recibido la orden de desplegar el backend."
+
+      - name: Desplegar el frontend
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_FRONTEND }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::Falta el secret RENDER_DEPLOY_HOOK_FRONTEND: no se despliega el frontend."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Render ha recibido la orden de desplegar el frontend."

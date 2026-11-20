@@ -4,8 +4,10 @@
 // El frontend se comunica con él mediante peticiones HTTP (fetch) en JSON.
 // =====================================================================
 
-// Dirección de la API (el backend NestJS tiene que estar arrancado)
-const API_URL = 'http://localhost:3000/productos';
+// Dirección de la API (el backend NestJS tiene que estar arrancado).
+// Viene de config.js: en tu Mac es localhost; en Render, la URL pública del backend.
+// Si config.js faltara, usamos localhost por defecto.
+const API_URL = window.API_URL || 'http://localhost:3000/productos';
 
 // 1) REFERENCIAS A ELEMENTOS DEL HTML (los buscamos por su id)
 const formulario = document.getElementById('formulario-producto');
