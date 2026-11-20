@@ -1,7 +1,9 @@
 # Proyecto fullstack mínimo (aprendizaje)
 
 ## Estado actual
-- Fase actual: 2 (Backend NestJS) — completada. Siguiente: Fase 3 (MongoDB).
+- Fase actual: 3 (MongoDB) — completada. Siguiente: Fase 4 (repaso final).
+- MongoDB 9.0.8 instalado en el usuario (sin admin): `~/.local/mongodb/bin/mongod`, datos en `~/.local/mongodb-data`, consola `mongosh` (npm global).
+  Arrancar: `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017`
 - Historial detallado de lo hecho y lo decidido: ver `BITACORA.md`.
 
 ## Objetivo

@@ -5,7 +5,10 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 ## Estado actual (resumen rápido)
 - **Fase completada:** 1 (Frontend sin backend).
 - **Fase completada:** 2 (backend NestJS con datos en memoria, frontend conectado). Commit `fase2`.
-- **Siguiente:** Fase 3. Añadir MongoDB (antes, comprobar que MongoDB local funciona).
+- **Fase completada:** 3 (MongoDB con Mongoose; los datos persisten). Commit `fase3`.
+- **Siguiente:** Fase 4. Repaso final del viaje de un dato.
+- **Para usar la app hay que arrancar 2 cosas** (cada una en su terminal): primero MongoDB y después el backend. Luego se abre `frontend/index.html`.
+- **Cómo arrancar MongoDB:** `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017` (dejar esa terminal abierta).
 - **Archivos del proyecto:** `CLAUDE.md`, `INSTRUCCIONES_PROYECTO.md`, `BITACORA.md`, `.gitignore`, `frontend/` (`index.html`, `styles.css`, `app.js`), `backend/` (NestJS; nuestro código está en `backend/src/productos/`).
 - **Cómo arrancar el backend:** `cd backend` y luego `npm run start:dev` → http://localhost:3000/productos
 - **Git:** activo. Sincronizado con GitHub (https://github.com/ladynaiky/DEL_PRUEBACIFO). Primer commit: `fase1`.
@@ -142,8 +145,64 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 - **Validar en el servidor:** nunca fiarse de lo que llega, aunque el navegador ya lo haya comprobado.
 - **Limitación:** los datos están en la memoria del servidor y se pierden al reiniciarlo. → Fase 3: MongoDB.
 
+- **Fase 3, paso 1: comprobamos MongoDB.** No está instalado: no hay `mongod` ni `mongosh`, Homebrew tampoco está y el puerto 27017 está libre.
+
+- **Decisión: instalar MongoDB desde la descarga oficial** (opción 1), sin administrador.
+  - Descartado: pedirlo al administrador (hay que esperar) y MongoDB Atlas (rompe la regla "en local").
+- **Fase 3, paso 2: instalación.**
+  - Servidor **MongoDB Community 9.0.8** (Mac Apple Silicon), descargado de `fastdl.mongodb.org`.
+    - Comprobamos la huella SHA-256 contra la que publica MongoDB: OK.
+    - Descomprimido en `~/.local/mongodb` (el programa es `~/.local/mongodb/bin/mongod`).
+  - Consola **mongosh 2.14.3**, con `npm install -g mongosh`, en `~/.npm-global`.
+    - npm no ejecutó los scripts opcionales de kerberos, cifrado y ssh. No hacen falta para este proyecto.
+  - Carpeta de datos: `~/.local/mongodb-data`.
+- **Fase 3, paso 3: arrancar y comprobar.**
+  - Comando: `~/.local/mongodb/bin/mongod --dbpath ~/.local/mongodb-data --bind_ip 127.0.0.1 --port 27017`
+  - `--bind_ip 127.0.0.1`: solo acepta conexiones desde este Mac, no desde la red del centro.
+  - Prueba con mongosh: insertamos `{ mensaje: "Hola MongoDB" }`, lo leímos y borramos la base de prueba ✅
+
+- **Fase 3, paso 4: conectar NestJS con MongoDB (Mongoose).**
+  - `npm install @nestjs/mongoose mongoose` en `backend/` → `@nestjs/mongoose` 12.0.1 y `mongoose` 9.12.2.
+  - **Nuevo `producto.schema.ts`:** la forma de un producto *en la base de datos* (colección `productos`), con los campos obligatorios, `min: 0` en precio y stock, y sin el campo interno `__v`.
+  - **`app.module.ts`:** `MongooseModule.forRoot('mongodb://127.0.0.1:27017/productos')`, la conexión con la base de datos `productos`.
+  - **`productos.module.ts`:** `MongooseModule.forFeature(...)` registra el modelo para poder usarlo en el servicio.
+  - **`productos.service.ts`:** la lista en memoria se sustituye por el modelo de Mongoose (`find`, `findById`, `create`, `findByIdAndUpdate`, `findByIdAndDelete`). Ahora todo es `async/await`.
+  - **`productos.controller.ts`:** solo cambia `remove`, que ahora espera (`await`) al borrado.
+  - **El frontend no se toca:** la API responde igual (mismas rutas y mismos campos).
+- **Decisiones de la Fase 3 (tomadas por Claude):**
+  - **El id lo genera MongoDB** (`_id`, 24 caracteres, por ejemplo `6b002f01ce922209a094ffa9`). El servicio lo convierte a `id` (texto) para que el frontend no cambie.
+  - **Un id con formato incorrecto (por ejemplo `/productos/123`) responde 404 "no existe"**, no un error del servidor.
+  - **Se mantiene la validación a mano del servicio**, y además el schema pone sus propias reglas (doble protección).
+  - **La dirección de MongoDB se puede cambiar** con la variable de entorno `MONGODB_URI`. Si no existe, se usa la local.
+- **Fase 3, paso 5: pruebas.**
+  - API con `curl`: crear, listar, editar, datos malos → 400, id con formato malo → 404, id inexistente → 404, borrar → 204, borrar otra vez → 404 ✅
+  - Con `mongosh` se ve el documento guardado dentro de MongoDB (con su `_id`) ✅
+  - **Persistencia:** paramos y volvimos a arrancar el backend *y* MongoDB, y el producto seguía ahí ✅ (en la Fase 2 se perdía).
+  - Problema durante las pruebas: en zsh, `GID` es una variable reservada (el número de grupo del usuario). Un script de prueba falló por usarla; se cambió el nombre. No afecta al proyecto.
+
+- **Fase 3, paso 6: prueba en el navegador (Claude, con Chrome)** ✅
+  - Igual que en la Fase 2, la web se sirvió temporalmente en `http://localhost:8080` y la ventana `confirm` se simuló con JavaScript.
+  - La página carga lo que ya había en MongoDB (el MacBook creado con `curl`).
+  - **Crear** iPad Pro → **editar** su stock de 4 a 10 → **borrar** el MacBook: todo bien.
+  - Al recargar la página, los datos siguen ahí. Con `mongosh` se ve exactamente lo mismo que en la web.
+  - `localStorage` sigue vacío.
+- **Cierre de la Fase 3:** la usuaria aprobó cerrar. Commit `fase3` y push a GitHub.
+
+#### ✅ Resumen de la Fase 3 (qué hemos aprendido)
+- **Pieza nueva: la base de datos (MongoDB).** Guarda los datos en el disco, así que sobreviven aunque se apague el servidor o el ordenador.
+- **Vocabulario de MongoDB:**
+  - Base de datos (`productos`) → colecciones (`productos`) → documentos (cada producto, parecido a un objeto JSON).
+  - Cada documento tiene un `_id` único que genera MongoDB.
+- **Dos programas distintos:** `mongod` es el servidor que guarda los datos. `mongosh` es la consola para mirarlos y cambiarlos a mano.
+- **Mongoose** es el "traductor" entre NestJS y MongoDB:
+  - **Schema:** describe cómo es un documento (campos, tipos, reglas).
+  - **Modelo:** el objeto con el que se habla con la colección (`find`, `create`, `findByIdAndUpdate`, `findByIdAndDelete`).
+- **Cadena de conexión:** `mongodb://127.0.0.1:27017/productos` = protocolo + ordenador + puerto + base de datos.
+- **Separar capas tiene premio:** solo cambiamos el servicio (y añadimos el schema). El controlador casi no cambió y el frontend nada.
+- **Ahora hay 3 programas funcionando a la vez:** MongoDB (27017), el backend (3000) y el navegador con el frontend.
+
 ### Pendiente
-- Fase 3: comprobar si MongoDB está instalado en local (probablemente no; el usuario no es administrador).
+- Fase 4: repaso final. Cómo viaja un dato desde el formulario hasta la base de datos y de vuelta.
 - Regenerar el token de GitHub (sigue pendiente).
 - Añadir Git al PATH en `~/.zshrc` (sigue pendiente).
 

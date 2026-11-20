@@ -1,53 +1,94 @@
 // =====================================================================
-// productos.service.ts — El "almacén" y las reglas de los productos
+// productos.service.ts — Las reglas de los productos y el acceso a los datos
 // =====================================================================
-// El servicio guarda los datos y sabe crear, leer, editar y borrar.
-// No sabe nada de HTTP (URLs, peticiones...): eso es cosa del controlador.
+// El servicio sabe crear, leer, editar y borrar. No sabe nada de HTTP
+// (URLs, peticiones...): eso es cosa del controlador.
 //
-// FASE 2: los datos viven EN MEMORIA (una lista de JavaScript).
-// Si se para el servidor, la lista se pierde. En la Fase 3 la cambiaremos por MongoDB.
+// FASE 3: los datos ya NO están en una lista en memoria, sino en MongoDB.
+// Usamos un "modelo" de Mongoose: un objeto con métodos para hablar con la
+// colección "productos" (find, findById, create, findByIdAndUpdate...).
+//
+// Hablar con la base de datos tarda un poco, por eso todo es "async" y usa "await".
 
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { isValidObjectId, Model, type HydratedDocument } from 'mongoose';
 import type { DatosProducto, Producto } from './producto.js';
+import { ProductoDB } from './producto.schema.js';
 
 @Injectable()
 export class ProductosService {
-  // La "base de datos" de momento: una simple lista en memoria
-  private productos: Producto[] = [];
+  // Nest nos "inyecta" el modelo de Mongoose para la colección de productos
+  constructor(@InjectModel(ProductoDB.name) private readonly modelo: Model<ProductoDB>) {}
 
   // LEER todos
-  findAll(): Producto[] {
-    return this.productos;
+  async findAll(): Promise<Producto[]> {
+    const documentos = await this.modelo.find();
+    return documentos.map((doc) => this.aProducto(doc));
   }
 
   // LEER uno por su id (si no existe → error 404 "no encontrado")
-  findOne(id: string): Producto {
-    const producto = this.productos.find((p) => p.id === id);
-    if (!producto) {
-      throw new NotFoundException(`No existe ningún producto con id ${id}`);
-    }
-    return producto;
+  async findOne(id: string): Promise<Producto> {
+    return this.aProducto(await this.buscarDocumento(id));
   }
 
-  // CREAR: el servidor pone el id (igual que hacía el frontend en la Fase 1)
-  create(datos: DatosProducto): Producto {
-    const producto: Producto = { id: Date.now().toString(), ...this.validar(datos) };
-    this.productos.push(producto);
-    return producto;
+  // CREAR: MongoDB genera el id (_id) automáticamente
+  async create(datos: DatosProducto): Promise<Producto> {
+    const documento = await this.modelo.create(this.validar(datos));
+    return this.aProducto(documento);
   }
 
   // EDITAR: sustituye los datos del producto con ese id (el id no cambia)
-  update(id: string, datos: DatosProducto): Producto {
-    this.findOne(id); // si no existe, lanza el 404
-    const actualizado: Producto = { id, ...this.validar(datos) };
-    this.productos = this.productos.map((p) => (p.id === id ? actualizado : p));
-    return actualizado;
+  async update(id: string, datos: DatosProducto): Promise<Producto> {
+    const datosValidos = this.validar(datos);
+    await this.buscarDocumento(id); // si no existe, lanza el 404
+    const actualizado = await this.modelo.findByIdAndUpdate(id, datosValidos, {
+      returnDocument: 'after', // devuélveme el documento YA cambiado
+      runValidators: true,     // aplica también las reglas del schema
+    });
+    if (!actualizado) throw this.noExiste(id);
+    return this.aProducto(actualizado);
   }
 
   // BORRAR
-  remove(id: string): void {
-    this.findOne(id); // si no existe, lanza el 404
-    this.productos = this.productos.filter((p) => p.id !== id);
+  async remove(id: string): Promise<void> {
+    const borrado = this.esIdValido(id) ? await this.modelo.findByIdAndDelete(id) : null;
+    if (!borrado) throw this.noExiste(id);
+  }
+
+  // ---------------------------------------------------------------------
+  // Funciones de ayuda (privadas: solo se usan dentro de este servicio)
+  // ---------------------------------------------------------------------
+
+  // Busca un documento por id; si el id no tiene el formato de MongoDB o no existe → 404
+  private async buscarDocumento(id: string): Promise<HydratedDocument<ProductoDB>> {
+    const documento = this.esIdValido(id) ? await this.modelo.findById(id) : null;
+    if (!documento) throw this.noExiste(id);
+    return documento;
+  }
+
+  // Los ids de MongoDB tienen un formato concreto (24 caracteres hexadecimales).
+  // Si nos llega otra cosa, ni lo buscamos: simplemente "no existe".
+  private esIdValido(id: string): boolean {
+    return isValidObjectId(id);
+  }
+
+  private noExiste(id: string): NotFoundException {
+    return new NotFoundException(`No existe ningún producto con id ${id}`);
+  }
+
+  // Convierte un documento de MongoDB en el objeto que enviamos al frontend.
+  // MongoDB llama al id "_id"; el frontend espera "id" (texto), como en la Fase 2.
+  private aProducto(doc: HydratedDocument<ProductoDB>): Producto {
+    return {
+      id: doc._id.toString(),
+      nombre: doc.nombre,
+      marca: doc.marca,
+      categoria: doc.categoria,
+      precio: doc.precio,
+      stock: doc.stock,
+      descripcion: doc.descripcion,
+    };
   }
 
   // Comprueba que los datos son correctos (si no → error 400 "petición incorrecta").

@@ -44,9 +44,10 @@ export class ProductosController {
   }
 
   // 204 = "hecho, y no hay nada que devolver"
+  // "await": esperamos a que MongoDB confirme el borrado antes de responder
   @Delete(':id')
   @HttpCode(204)
-  remove(@Param('id') id: string) {
-    this.productosService.remove(id);
+  async remove(@Param('id') id: string) {
+    await this.productosService.remove(id);
   }
 }
