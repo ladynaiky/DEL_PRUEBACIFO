@@ -1,7 +1,7 @@
 # Proyecto fullstack mínimo (aprendizaje)
 
 ## Estado actual
-- Fase actual: 1 (Frontend sin backend) — completada. Siguiente: Fase 2.
+- Fase actual: 2 (Backend NestJS) — completada. Siguiente: Fase 3 (MongoDB).
 - Historial detallado de lo hecho y lo decidido: ver `BITACORA.md`.
 
 ## Objetivo

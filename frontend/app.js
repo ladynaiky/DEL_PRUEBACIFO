@@ -1,9 +1,11 @@
 // =====================================================================
-// app.js — Lógica del frontend (Fase 1: datos guardados en localStorage)
+// app.js — Lógica del frontend
+// Fase 2: los datos ya NO están en localStorage, sino en el servidor NestJS.
+// El frontend se comunica con él mediante peticiones HTTP (fetch) en JSON.
 // =====================================================================
 
-// Nombre de la "clave" con la que guardamos la lista en localStorage
-const CLAVE_STORAGE = 'productos';
+// Dirección de la API (el backend NestJS tiene que estar arrancado)
+const API_URL = 'http://localhost:3000/productos';
 
 // 1) REFERENCIAS A ELEMENTOS DEL HTML (los buscamos por su id)
 const formulario = document.getElementById('formulario-producto');
@@ -13,19 +15,47 @@ const botonCancelar = document.getElementById('boton-cancelar');
 const campoId = document.getElementById('id'); // campo oculto: vacío = crear, con valor = editar
 
 // ---------------------------------------------------------------------
-// 2) FUNCIONES DE DATOS: leer y guardar en localStorage
+// 2) FUNCIONES DE DATOS: hablan con la API
 // ---------------------------------------------------------------------
+// "async/await": una petición por internet tarda un poco. "await" significa
+// "espera a que llegue la respuesta antes de seguir".
 
-// Lee la lista de productos. localStorage solo guarda TEXTO,
-// así que convertimos ese texto (JSON) en una lista de JavaScript.
-function leerProductos() {
-  const texto = localStorage.getItem(CLAVE_STORAGE);
-  return texto ? JSON.parse(texto) : []; // si no hay nada, lista vacía
+// Función común para todas las peticiones: envía, espera y revisa si hubo error.
+async function pedirApi(url, opciones = {}) {
+  const respuesta = await fetch(url, {
+    headers: { 'Content-Type': 'application/json' }, // "te envío JSON"
+    ...opciones,
+  });
+
+  if (!respuesta.ok) {
+    // El servidor ha contestado con un error (400, 404...): leemos su mensaje
+    const error = await respuesta.json().catch(() => ({}));
+    const mensaje = Array.isArray(error.message) ? error.message.join('\n') : error.message;
+    throw new Error(mensaje || `Error ${respuesta.status}`);
+  }
+
+  // 204 = respuesta vacía (al borrar). Si no, convertimos el JSON en objeto.
+  return respuesta.status === 204 ? null : respuesta.json();
 }
 
-// Guarda la lista de productos, convirtiéndola antes a texto (JSON).
-function guardarProductos(productos) {
-  localStorage.setItem(CLAVE_STORAGE, JSON.stringify(productos));
+// LEER todos → GET /productos
+function leerProductos() {
+  return pedirApi(API_URL);
+}
+
+// CREAR → POST /productos (con los datos en el "cuerpo" de la petición)
+function crearProducto(datos) {
+  return pedirApi(API_URL, { method: 'POST', body: JSON.stringify(datos) });
+}
+
+// EDITAR → PUT /productos/:id
+function editarProducto(id, datos) {
+  return pedirApi(`${API_URL}/${id}`, { method: 'PUT', body: JSON.stringify(datos) });
+}
+
+// BORRAR → DELETE /productos/:id
+function borrarProducto(id) {
+  return pedirApi(`${API_URL}/${id}`, { method: 'DELETE' });
 }
 
 // ---------------------------------------------------------------------
@@ -44,9 +74,22 @@ function formatearPrecio(precio) {
   return precio.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 }
 
-// Dibuja una caja por cada producto dentro del listado.
-function pintarProductos() {
-  const productos = leerProductos();
+// Muestra un aviso cuando el servidor no responde o devuelve un error
+function mostrarError(error) {
+  console.error(error);
+  alert(`No se ha podido completar la operación:\n${error.message}\n\n¿Está arrancado el backend?`);
+}
+
+// Pide la lista al servidor y dibuja una caja por cada producto.
+async function pintarProductos() {
+  let productos;
+  try {
+    productos = await leerProductos();
+  } catch (error) {
+    console.error(error);
+    listado.innerHTML = '<p class="vacio">No se puede conectar con el servidor. ¿Está arrancado el backend?</p>';
+    return;
+  }
 
   if (productos.length === 0) {
     listado.innerHTML = '<p class="vacio">No hay productos todavía.</p>';
@@ -94,14 +137,13 @@ function cargarEnFormulario(producto) {
 // ---------------------------------------------------------------------
 
 // Al pulsar "Guardar" (enviar el formulario): CREAR o EDITAR
-formulario.addEventListener('submit', (evento) => {
+formulario.addEventListener('submit', async (evento) => {
   evento.preventDefault(); // evita que la página se recargue
 
   const idEditando = campoId.value; // vacío = crear, con valor = editar
 
-  // Leemos los valores de cada campo y creamos el objeto producto
-  const producto = {
-    id: idEditando || Date.now().toString(), // si es nuevo, id basado en la hora actual
+  // Leemos los valores de cada campo. Ya NO ponemos el id: lo pone el servidor.
+  const datos = {
     nombre: document.getElementById('nombre').value.trim(),
     marca: document.getElementById('marca').value.trim(),
     categoria: document.getElementById('categoria').value,
@@ -110,53 +152,56 @@ formulario.addEventListener('submit', (evento) => {
     descripcion: document.getElementById('descripcion').value.trim(),
   };
 
-  let productos = leerProductos();
-
-  if (idEditando) {
-    // EDITAR: sustituimos el producto que tiene ese id
-    productos = productos.map((p) => (p.id === idEditando ? producto : p));
-  } else {
-    // CREAR: lo añadimos al final de la lista
-    productos.push(producto);
+  try {
+    if (idEditando) {
+      await editarProducto(idEditando, datos);
+    } else {
+      await crearProducto(datos);
+    }
+    limpiarFormulario();
+    await pintarProductos();
+  } catch (error) {
+    mostrarError(error);
   }
-
-  guardarProductos(productos);
-  limpiarFormulario();
-  pintarProductos();
 });
 
 // Al pulsar "Cancelar": salimos del modo edición
 botonCancelar.addEventListener('click', limpiarFormulario);
 
 // Clics dentro del listado: un único escuchador para todos los botones
-listado.addEventListener('click', (evento) => {
+listado.addEventListener('click', async (evento) => {
   const boton = evento.target.closest('button'); // ¿se ha pulsado un botón?
   if (!boton) return;
 
   const id = boton.dataset.id; // lee el atributo data-id del botón
-  const productos = leerProductos();
-  const producto = productos.find((p) => p.id === id);
-  if (!producto) return;
 
-  if (boton.classList.contains('boton-editar')) {
-    // EDITAR: llevamos sus datos al formulario
-    cargarEnFormulario(producto);
-  }
+  try {
+    const productos = await leerProductos();
+    const producto = productos.find((p) => p.id === id);
+    if (!producto) return;
 
-  if (boton.classList.contains('boton-borrar')) {
-    // BORRAR: pedimos confirmación y lo quitamos de la lista
-    if (!confirm(`¿Seguro que quieres borrar "${producto.nombre}"?`)) return;
+    if (boton.classList.contains('boton-editar')) {
+      // EDITAR: llevamos sus datos al formulario
+      cargarEnFormulario(producto);
+    }
 
-    guardarProductos(productos.filter((p) => p.id !== id));
+    if (boton.classList.contains('boton-borrar')) {
+      // BORRAR: pedimos confirmación y se lo pedimos al servidor
+      if (!confirm(`¿Seguro que quieres borrar "${producto.nombre}"?`)) return;
 
-    // Si estábamos editando justo ese producto, limpiamos el formulario
-    if (campoId.value === id) limpiarFormulario();
+      await borrarProducto(id);
 
-    pintarProductos();
+      // Si estábamos editando justo ese producto, limpiamos el formulario
+      if (campoId.value === id) limpiarFormulario();
+
+      await pintarProductos();
+    }
+  } catch (error) {
+    mostrarError(error);
   }
 });
 
 // ---------------------------------------------------------------------
-// 5) INICIO: al cargar la página, pintamos lo que ya hubiera guardado
+// 5) INICIO: al cargar la página, pedimos la lista al servidor
 // ---------------------------------------------------------------------
 pintarProductos();

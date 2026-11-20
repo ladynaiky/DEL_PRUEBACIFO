@@ -4,8 +4,10 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
 
 ## Estado actual (resumen rápido)
 - **Fase completada:** 1 (Frontend sin backend).
-- **Siguiente:** Fase 2. Añadir el backend NestJS (antes, revisar Node, npm y Nest CLI).
-- **Archivos del proyecto:** `CLAUDE.md`, `INSTRUCCIONES_PROYECTO.md`, `BITACORA.md`, `.gitignore`, `frontend/` (`index.html`, `styles.css`, `app.js`).
+- **Fase completada:** 2 (backend NestJS con datos en memoria, frontend conectado). Commit `fase2`.
+- **Siguiente:** Fase 3. Añadir MongoDB (antes, comprobar que MongoDB local funciona).
+- **Archivos del proyecto:** `CLAUDE.md`, `INSTRUCCIONES_PROYECTO.md`, `BITACORA.md`, `.gitignore`, `frontend/` (`index.html`, `styles.css`, `app.js`), `backend/` (NestJS; nuestro código está en `backend/src/productos/`).
+- **Cómo arrancar el backend:** `cd backend` y luego `npm run start:dev` → http://localhost:3000/productos
 - **Git:** activo. Sincronizado con GitHub (https://github.com/ladynaiky/DEL_PRUEBACIFO). Primer commit: `fase1`.
 
 ---
@@ -67,6 +69,83 @@ Diario de todo lo que hacemos y decidimos. La entrada más reciente va arriba.
   - Faltaba el resumen de lo aprendido: lo añadimos a la entrada del 19/11 ✅
   - Hicimos el commit `fase1: cierre` con la documentación de hoy y lo subimos a GitHub.
 - **La usuaria se fue de pausa y pidió a Claude que siguiera con la Fase 2 por su cuenta.** Los pasos siguientes, hasta que vuelva, los hizo Claude solo, explicados aquí.
+
+#### Fase 2 (hecha por Claude durante la pausa)
+- **2.1 Instalar Nest CLI:** `npm install -g @nestjs/cli` → versión 12.0.14.
+  - Se instala en `~/.npm-global`, sin necesidad de ser administradora.
+- **2.2 Crear el proyecto:** `nest new backend --package-manager npm --skip-git`.
+  - Crea la carpeta `backend/` con NestJS 12 y descarga sus librerías en `node_modules/`.
+  - `--skip-git`: evita que Nest cree un segundo repositorio Git dentro del nuestro.
+  - Nest también añadió "skills" para asistentes de IA (`backend/.claude/skills`, `backend/.agents`) y un `AGENTS.md`. Son ayudas para Claude, no forman parte de la app.
+  - Ampliamos `.gitignore` con `dist/` y `*.tsbuildinfo` (lo que genera la compilación) y con `.claude/settings.local.json` (permisos locales de Claude Code).
+- **2.3 Escribir el módulo `productos`** en `backend/src/productos/`:
+  - `producto.ts`: la "forma" de un producto (sus campos y tipos).
+  - `productos.service.ts`: el almacén **en memoria** (una lista) con crear, listar, ver uno, editar y borrar, y la validación de los datos.
+  - `productos.controller.ts`: las rutas de la API.
+  - `productos.module.ts`: agrupa el controlador y el servicio. Se registra en `app.module.ts`.
+  - `main.ts`: activa **CORS** (`app.enableCors()`) y arranca el servidor en el puerto 3000.
+- **La API REST:**
+
+  | Método | URL | Qué hace | Respuesta |
+  |---|---|---|---|
+  | GET | `/productos` | Listar todos | 200 + lista |
+  | GET | `/productos/:id` | Ver uno | 200, o 404 si no existe |
+  | POST | `/productos` | Crear | 201 + producto creado (con id) |
+  | PUT | `/productos/:id` | Editar | 200 + producto editado |
+  | DELETE | `/productos/:id` | Borrar | 204 (sin contenido) |
+  | — | datos incorrectos | — | 400 + lista de errores |
+
+- **2.4 Probar la API sola con `curl`:** las 8 pruebas salieron bien (crear, listar, editar, datos malos → 400, borrar → 204, no existe → 404, CORS activo). El test que traía Nest también pasa.
+- **2.5 Conectar el frontend:** en `frontend/app.js` cambiamos solo la parte de datos.
+  - Antes: `localStorage`. Ahora: `fetch` contra `http://localhost:3000/productos`.
+  - El resto (pintar, formulario, botones) sigue igual. Ahora hay `async/await` porque las peticiones tardan un poco.
+  - Si el backend está apagado, la página avisa: "No se puede conectar con el servidor".
+
+#### Decisiones de la Fase 2 (tomadas por Claude: revisar a la vuelta)
+- **El id lo genera el servidor** con `Date.now()` (antes lo hacía el frontend).
+  - Por qué: quien guarda los datos decide el id.
+- **Para editar se usa PUT** (se sustituye el producto entero), no PATCH (cambiar solo algunos campos).
+  - Por qué: el formulario siempre envía todos los campos.
+- **La validación está escrita a mano en el servicio**, sin librerías como Zod o class-validator.
+  - Por qué: menos piezas nuevas. El servidor valida aunque el navegador ya lo haga, porque nunca debe fiarse de lo que recibe.
+- **CORS abierto a cualquier origen.**
+  - Por qué: el frontend se abre como archivo (`file://`), sin servidor propio. Es aceptable en local; en un proyecto real se limitaría.
+- **Se mantiene el ejemplo de Nest** (`GET /` → "Hello World!"). Sirve para comprobar rápido que el servidor responde.
+- **No se hace el commit `fase2` todavía:** falta que la usuaria pruebe la web en el navegador.
+
+- **2.6 Prueba en el navegador (Claude, a petición de la usuaria):** con Chrome, todo bien ✅
+  - La extensión de Chrome no puede abrir archivos `file://`. Para la prueba, Claude sirvió `frontend/` con un mini servidor Node temporal en `http://localhost:8080`, fuera del proyecto, y lo paró al terminar.
+  - **Crear:** 2 productos desde el formulario. Aparecen en el listado y también en `GET /productos` del servidor ✅
+  - **Editar:** el formulario se carga ("Editar producto"), se cambian precio y stock, y se guardan ✅
+  - **localStorage vacío:** los datos ya solo están en el servidor ✅
+  - **Borrar:** sale la pregunta de confirmación y el producto desaparece. Si se pulsa "Cancelar", no se borra ✅
+    - Nota: la ventana `confirm` se simuló con JavaScript, porque bloquea la extensión del navegador.
+  - **Backend apagado:** la página muestra "No se puede conectar con el servidor" ✅
+  - **Reiniciar el backend:** la lista vuelve vacía. Es la limitación esperada de los datos en memoria, y la resolverá la Fase 3 (MongoDB) ✅
+
+- **Cierre de la Fase 2:**
+  - La usuaria aprobó las decisiones de la Fase 2 (id en el servidor, PUT, validación a mano, CORS abierto).
+  - Las skills de Nest (`backend/.claude/`, `backend/.agents/`) se ignoran en Git porque no forman parte de la app.
+  - Commit `fase2` y push a GitHub.
+
+#### ✅ Resumen de la Fase 2 (qué hemos aprendido)
+- **Pieza nueva: el backend.** Es un programa que se ejecuta en un servidor (aquí, en tu propio Mac) y guarda los datos para todos los navegadores que se conecten.
+- **Node y npm:** Node ejecuta JavaScript fuera del navegador. npm descarga librerías (en `node_modules/`).
+- **NestJS se organiza en piezas:**
+  - Módulo = la caja que agrupa una funcionalidad.
+  - Controlador = las "puertas" (rutas HTTP).
+  - Servicio = el almacén y las reglas.
+- **API REST:** el frontend y el backend hablan por HTTP, con un **método** (GET, POST, PUT, DELETE) y una **URL** (`/productos/:id`). Los datos viajan en **JSON**.
+- **Códigos de respuesta:** 200 = bien, 201 = creado, 204 = hecho sin contenido, 400 = datos incorrectos, 404 = no existe.
+- **`fetch` y `async/await`:** cómo pide datos el navegador al servidor y espera la respuesta.
+- **CORS:** el permiso que da el servidor para que otra web pueda llamarle desde el navegador.
+- **Validar en el servidor:** nunca fiarse de lo que llega, aunque el navegador ya lo haya comprobado.
+- **Limitación:** los datos están en la memoria del servidor y se pierden al reiniciarlo. → Fase 3: MongoDB.
+
+### Pendiente
+- Fase 3: comprobar si MongoDB está instalado en local (probablemente no; el usuario no es administrador).
+- Regenerar el token de GitHub (sigue pendiente).
+- Añadir Git al PATH en `~/.zshrc` (sigue pendiente).
 
 ---
 

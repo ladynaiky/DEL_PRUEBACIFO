@@ -3,3 +3,14 @@
 
 # Dependencias de Node/npm (Fase 2): se pueden volver a descargar con "npm install"
 node_modules/
+
+# Código compilado de NestJS (se genera con "npm run build" / "npm run start")
+dist/
+
+# Permisos locales de Claude Code en este ordenador (no se comparten)
+.claude/settings.local.json
+*.tsbuildinfo
+
+# Skills de Nest para asistentes de IA (no forman parte de la app)
+backend/.claude/
+backend/.agents/
